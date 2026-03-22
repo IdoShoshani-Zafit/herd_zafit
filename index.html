@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>מחשבת העדר 🐄 - תלמידים</title>
+  <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
+  <style>
+    :root { --primary-mint: #17C3B2; --primary-dark: #129A8C; --secondary-purple: #6c5ce7; --accent-coral: #FE6D73; --bg-light: #F4F9F9; --card-bg: #FFFFFF; --text-main: #227C9D; --text-muted: #7A9E9F; --shadow-soft: 0 10px 30px rgba(34, 124, 157, 0.08); }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Assistant', sans-serif; background-color: var(--bg-light); color: var(--text-main); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; width: 100%; overflow-x: hidden; }
+    #participant-counter { background: var(--card-bg); color: var(--accent-coral); padding: 10px 20px; border-radius: 50px; font-weight: 800; font-size: 1rem; box-shadow: var(--shadow-soft); border: 2px solid #FEF2F2; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    h1 { color: var(--secondary-purple); font-weight: 800; font-size: 2.2rem; text-align: center; margin: 0 0 20px 0; letter-spacing: -1px; }
+    h2 { color: var(--primary-mint); font-weight: 700; font-size: 1.6rem; margin: 0 0 15px 0; }
+    .screen { display: none; width: 100%; max-width: 450px; text-align: center; animation: fadeIn 0.4s ease-out; }
+    .screen.active { display: block; }
+    .card { background: var(--card-bg); border-radius: 24px; padding: 30px 25px; box-shadow: var(--shadow-soft); margin-bottom: 20px; border: 1px solid rgba(23, 195, 178, 0.05); position: relative; }
+    input { width: 100%; padding: 18px; margin: 10px 0; border: 2px solid #E0F2F1; border-radius: 15px; font-size: 1.2rem; font-weight: 600; background-color: #FAFFFF; color: var(--text-main); transition: all 0.2s; }
+    input:focus { outline: none; border-color: var(--primary-mint); box-shadow: 0 0 0 4px rgba(23, 195, 178, 0.15); }
+    button { background-color: var(--primary-mint); color: white; border: none; padding: 18px 30px; border-radius: 15px; font-size: 1.3rem; font-weight: 800; cursor: pointer; width: 100%; transition: all 0.1s ease-out; margin-top: 15px; border-bottom: 4px solid var(--primary-dark); box-shadow: 0 4px 10px rgba(23, 195, 178, 0.2); }
+    button:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; margin-bottom: 2px; }
+    button:disabled { background-color: #BDBDBD; border-bottom-color: #9E9E9E; cursor: not-allowed; box-shadow: none; }
+    @keyframes wiggle { 0%, 100% {transform: rotate(-10deg);} 50% {transform: rotate(10deg);} }
+    .waiting-icon { font-size: 5rem; margin: 20px 0; animation: wiggle 1s ease-in-out infinite; display: inline-block; }
+    .madness-bar { background: #E0F2F1; border-radius: 50px; margin-bottom: 12px; position: relative; overflow: hidden; height: 45px; display: flex; align-items: center; padding: 0 20px; border: 1px solid rgba(23, 195, 178, 0.1); }
+    .madness-fill { position: absolute; top: 0; right: 0; bottom: 0; background: linear-gradient(90deg, var(--primary-mint), #1edcc9); z-index: 1; transition: width 1s ease-out; border-radius: 50px; }
+    .madness-text { position: relative; z-index: 2; width: 100%; display: flex; justify-content: space-between; font-weight: 700; font-size: 1.1rem; color: #0A5F5A; }
+    .leaderboard { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: -8px;}
+    .leaderboard th { text-align: right; padding: 10px; color: var(--text-muted); font-weight: 600; font-size: 0.9rem;}
+    .leaderboard td { text-align: right; padding: 18px 15px; background: var(--card-bg); color: var(--text-main); font-weight: 600; font-size: 1.1rem; }
+    .leaderboard td:first-child { border-radius: 0 15px 15px 0; }
+    .leaderboard td:last-child { border-radius: 15px 0 0 15px; text-align: left; }
+    .podium-highlight td { background: rgba(23, 195, 178, 0.08); font-weight: 800; color: var(--primary-dark); }
+    .practice-tag { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #FE6D73; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; white-space: nowrap; box-shadow: 0 4px 10px rgba(254, 109, 115, 0.3);}
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <div id="participant-counter">👥 <span id="p-count">0</span> מחוברים</div>
+  <h1>מחשבת העדר</h1>
+
+  <div id="login-screen" class="screen active">
+    <div class="card">
+      <h2>ברוכים הבאים! 👋</h2>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">כדי שהמורה יזהה אותך, אנא הקלד שם מלא.</p>
+      <input type="text" id="player-name" placeholder="למשל: ישראל ישראלי" autocomplete="name">
+      <button id="btn-login">היכנס למשחק ✨</button>
+    </div>
+  </div>
+
+  <div id="waiting-screen" class="screen">
+    <div class="card" style="text-align: center;">
+      <div class="waiting-icon">🐄</div>
+      <h2>תפסו מקום!</h2>
+      <p style="font-size: 1.2rem; font-weight: 600; color: var(--secondary-purple);">המשחק יתחיל ברגע שהמורה יפעיל את השאלה הראשונה.</p>
+    </div>
+  </div>
+
+  <div id="answering-screen" class="screen">
+    <div class="card" style="background: linear-gradient(135deg, var(--secondary-purple), #8e44ad); color: white; padding: 25px;">
+      <div id="practice-badge-student" class="practice-tag" style="display:none;">🎯 סיבוב חימום - ללא ניקוד</div>
+      <p style="opacity: 0.8; margin: 0 0 5px 0; font-weight: 600; font-size: 0.9rem;">הקטגוריה הנוכחית היא:</p>
+      <h2 style="color: white; margin:0; font-size: 2rem; font-weight: 800;" id="display-category">...טוען...</h2>
+    </div>
+    
+    <div class="card" id="input-area">
+      <h2 style="color: var(--text-main);">מה התשובה שלך? 🤔</h2>
+      <p style="color: var(--text-muted); margin-top: -10px;">נסו לחשוב מה רוב הכיתה תענה.</p>
+      <input type="text" id="player-answer" placeholder="הקלד מילה אחת בלבד..." autocomplete="off">
+      <button id="btn-submit-answer">שלח!</button>
+      <p id="answer-status" style="font-weight: 700; margin-top: 15px; font-size: 1.1rem;"></p>
+    </div>
+
+    <div class="card" id="submitted-area" style="display:none; text-align:center; border: 3px solid #E0F2F1;">
+      <div class="waiting-icon">⏳</div>
+      <h2 style="color: var(--secondary-purple); font-size: 2.2rem; margin-bottom: 5px;">התשובה התקבלה!</h2>
+      <p style="font-size: 1.2rem; color: var(--primary-dark); font-weight: 700;">כל הכבוד! נשאר רק לחכות לתוצאות.</p>
+    </div>
+  </div>
+
+  <div id="results-screen" class="screen">
+    <div class="card">
+      <div id="practice-badge-res" class="practice-tag" style="display:none;">🎯 לא נוספו נקודות</div>
+      <h2>📊 חכמת ההמונים</h2>
+      <div id="madness-container"></div>
+    </div>
+    <div class="card">
+      <h2>🏆 צמרת הטבלה</h2>
+      <table class="leaderboard">
+        <thead><tr><th>שם התלמיד</th><th>נקודות</th></tr></thead>
+        <tbody id="leaderboard-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="final-screen" class="screen">
+    
+    <div id="final-drumroll" class="card" style="padding: 40px 20px;">
+      <div class="waiting-icon" style="animation: wiggle 0.3s infinite; font-size: 6rem;">🥁</div>
+      <h2 style="color: var(--secondary-purple); font-size: 2.5rem;">מחשבים תוצאות...</h2>
+      <p style="font-size: 1.5rem; font-weight: 800; color: var(--primary-mint);">הרימו את הראש ללוח!</p>
+      <p style="color: var(--text-muted); font-size: 1.1rem;">המנצחים מוכרזים ממש עכשיו...</p>
+    </div>
+
+    <div id="final-personal" class="card" style="display:none; border: 4px solid #FFD700; padding-top: 40px;">
+      <div style="font-size: 5rem; margin-top: -20px;">🎉</div>
+      <h1 style="color: #F57F17; font-size: 2.5rem; margin-bottom: 10px;">המשחק הסתיים!</h1>
+      <div id="my-final-rank" style="background: var(--bg-light); padding: 20px; border-radius: 15px; margin: 20px 0;"></div>
+      <p style="color: var(--text-muted); font-weight: bold; font-size: 1.2rem;">כל הכבוד לכולם!</p>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAFw1v_X9xCR7Qsx0lLcw6aIdWa6vN8Uog",
+      authDomain: "herd-mentality-c0c0a.firebaseapp.com",
+      databaseURL: "https://herd-mentality-c0c0a-default-rtdb.firebaseio.com",
+      projectId: "herd-mentality-c0c0a",
+      storageBucket: "herd-mentality-c0c0a.firebasestorage.app",
+      messagingSenderId: "697436671170",
+      appId: "1:697436671170:web:1765156f5c51ca373c3f5b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    let myName = ""; let currentGameState = null; let isAnswerSubmitted = false; let myAnswerListener = null;
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+      window.scrollTo(0, 0); 
+    }
+
+    onValue(ref(db, 'players'), (snapshot) => {
+      const players = snapshot.val() || {};
+      document.getElementById('p-count').innerText = Object.keys(players).length;
+    });
+
+    // --- הוספת תמיכה במקש אנטר בשדה השם ---
+    document.getElementById('player-name').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        document.getElementById('btn-login').click();
+      }
+    });
+
+    document.getElementById('btn-login').addEventListener('click', async () => {
+      const inputName = document.getElementById('player-name').value.trim();
+      if (!inputName) return alert("אנא הקלד את שמך.");
+      
+      myName = inputName;
+      document.getElementById('btn-login').innerText = "מתחבר...";
+      document.getElementById('btn-login').disabled = true;
+      
+      try {
+        const playerRef = ref(db, `players/${myName}`);
+        const playerSnap = await get(playerRef);
+        if (!playerSnap.exists()) await set(playerRef, { score: 0 });
+
+        const snap = await get(ref(db, 'gameState'));
+        const state = snap.val();
+        
+        if (state && state.status === 'WAITING') showScreen('waiting-screen');
+        else if (state && state.status === 'ANSWERING') showScreen('answering-screen');
+        else if (state && state.status === 'RESULTS') { renderResults(state.round); showScreen('results-screen'); } 
+        else if (state && state.status === 'FINAL_RESULTS') { executeFinalSequence(); }
+        else { showScreen('waiting-screen'); }
+      } catch (err) {
+        alert("שגיאת חיבור. נסה שוב.");
+        document.getElementById('btn-login').innerText = "היכנס למשחק ✨";
+        document.getElementById('btn-login').disabled = false;
+        myName = "";
+      }
+    });
+
+    onValue(ref(db, 'gameState'), (state) => {
+      if (!state.val()) return;
+      const val = state.val();
+      const previousState = currentGameState;
+      currentGameState = val;
+      
+      if (myName === "") return;
+
+      if (val.status === 'WAITING') { showScreen('waiting-screen'); } 
+      else if (val.status === 'ANSWERING') {
+        if (!previousState || previousState.round !== val.round) prepareForNewQuestion(val.category, val.isPractice);
+        showScreen('answering-screen');
+      } 
+      else if (val.status === 'RESULTS') {
+        if (myAnswerListener) myAnswerListener(); 
+        document.getElementById('practice-badge-res').style.display = val.isPractice ? 'block' : 'none';
+        renderResults(val.round);
+        showScreen('results-screen');
+      }
+      else if (val.status === 'FINAL_RESULTS') {
+        if (!previousState || previousState.status !== 'FINAL_RESULTS') {
+            executeFinalSequence();
+        }
+      }
+    });
+
+    function prepareForNewQuestion(category, isPractice) {
+      document.getElementById('display-category').innerText = category;
+      document.getElementById('practice-badge-student').style.display = isPractice ? 'block' : 'none';
+      document.getElementById('player-answer').value = '';
+      document.getElementById('answer-status').innerText = '';
+      document.getElementById('input-area').style.display = 'block';
+      document.getElementById('submitted-area').style.display = 'none';
+      
+      isAnswerSubmitted = false;
+      if (myAnswerListener) myAnswerListener();
+
+      myAnswerListener = onValue(ref(db, `answers/round_${currentGameState.round}/${myName}`), (snap) => {
+        if (isAnswerSubmitted && !snap.exists() && currentGameState.status === 'ANSWERING') {
+          isAnswerSubmitted = false;
+          document.getElementById('input-area').style.display = 'block';
+          document.getElementById('submitted-area').style.display = 'none';
+          document.getElementById('player-answer').value = '';
+          const statusText = document.getElementById('answer-status');
+          statusText.innerText = "❌ המורה פסל את התשובה שלך. נסה מילה אחרת!";
+          statusText.style.color = "#FE6D73"; 
+        }
+      });
+    }
+
+    // --- הוספת תמיכה במקש אנטר בשדה התשובה ---
+    document.getElementById('player-answer').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        document.getElementById('btn-submit-answer').click();
+      }
+    });
+
+    document.getElementById('btn-submit-answer').addEventListener('click', () => {
+      const ans = document.getElementById('player-answer').value.trim().toLowerCase();
+      if (!ans) return;
+      isAnswerSubmitted = true;
+      document.getElementById('input-area').style.display = 'none';
+      document.getElementById('submitted-area').style.display = 'block';
+      set(ref(db, `answers/round_${currentGameState.round}/${myName}`), ans);
+    });
+
+    async function renderResults(roundNum) {
+      const answersSnap = await get(ref(db, `answers/round_${roundNum}`));
+      const playersSnap = await get(ref(db, 'players'));
+      const answers = answersSnap.val() || {};
+      const players = playersSnap.val() || {};
+
+      let counts = {};
+      Object.values(answers).forEach(ans => { counts[ans] = (counts[ans] || 0) + 1; });
+      let madnessArr = Object.keys(counts).map(ans => ({ text: ans, count: counts[ans] }));
+      madnessArr.sort((a,b) => b.count - a.count);
+
+      const maxCount = madnessArr.length ? madnessArr[0].count : 1;
+      const container = document.getElementById('madness-container');
+      container.innerHTML = '';
+      if (madnessArr.length === 0) { container.innerHTML = '<p style="color: var(--text-muted);">אף אחד לא קיבל נקודות בסיבוב הזה.</p>'; } 
+      else {
+        madnessArr.forEach(item => {
+          let pct = (item.count / maxCount) * 100;
+          container.innerHTML += `<div class="madness-bar"><div class="madness-fill" style="width: ${pct}%"></div><div class="madness-text"><span>${item.text}</span><span>${item.count} קולות</span></div></div>`;
+        });
+      }
+
+      let myAnswerInThisRound = answers[myName];
+      if (!currentGameState.isPractice && myAnswerInThisRound && counts[myAnswerInThisRound] === maxCount && maxCount > 0) {
+          confetti({ particleCount: 150, spread: 80, origin: { y: 0.7 }, colors: ['#17C3B2', '#6c5ce7', '#FE6D73', '#FFCB77'], zIndex: 9999 });
+          setTimeout(() => { confetti({ particleCount: 100, spread: 120, origin: { y: 0.6 }, zIndex: 9999 }); }, 500);
+      }
+
+      let leaderArr = Object.keys(players).map(p => ({ name: p, score: players[p].score || 0 }));
+      leaderArr.sort((a,b) => b.score - a.score);
+      const tbody = document.getElementById('leaderboard-body');
+      tbody.innerHTML = '';
+      const medals = ['🥇', '🥈', '🥉'];
+      
+      for(let i = 0; i < Math.min(3, leaderArr.length); i++) {
+         let p = leaderArr[i];
+         let highlightClass = p.name === myName ? 'podium-highlight' : '';
+         tbody.innerHTML += `<tr class="${highlightClass}"><td style="text-align: right;"><span style="display:inline-block; width: 30px; text-align: center; margin-left: 10px; font-size: 1.2rem;">${medals[i]}</span>${p.name}</td><td>${p.score}</td></tr>`;
+      }
+
+      let myIndex = leaderArr.findIndex(p => p.name === myName);
+      if (myIndex > 2) {
+         tbody.innerHTML += `<tr><td colspan="2" style="text-align:center; padding: 5px; color:#B0BEC5; border:none; background:none;">...</td></tr>`;
+         tbody.innerHTML += `<tr class="podium-highlight" style="border-radius: 15px; border: 2px solid rgba(23, 195, 178, 0.2);"><td style="text-align: right;"><span style="display:inline-block; width: 30px; text-align: center; margin-left: 10px; font-size: 0.8rem; background: var(--primary-dark); color: white; padding: 4px; border-radius: 8px;">#${myIndex + 1}</span>${myName} (אתה)</td><td>${leaderArr[myIndex].score}</td></tr>`;
+      }
+    }
+
+    async function executeFinalSequence() {
+      document.getElementById('final-drumroll').style.display = 'block';
+      document.getElementById('final-personal').style.display = 'none';
+      showScreen('final-screen');
+
+      const snap = await get(ref(db, 'players'));
+      const playersObj = snap.val() || {};
+      let leaderArr = Object.keys(playersObj).map(p => ({ name: p, score: playersObj[p].score || 0 }));
+      leaderArr.sort((a,b) => b.score - a.score);
+      
+      let myIndex = leaderArr.findIndex(p => p.name === myName);
+      let myScore = leaderArr[myIndex]?.score || 0;
+      
+      const rankContainer = document.getElementById('my-final-rank');
+      if (myIndex === 0) {
+        rankContainer.innerHTML = `<h2 style="color: var(--primary-mint); font-size: 2rem;">וואו! הגעת למקום ה-1! 🥇</h2><p style="font-size: 1.5rem;">אספת ${myScore} נקודות.</p>`;
+      } else if (myIndex === 1 || myIndex === 2) {
+        rankContainer.innerHTML = `<h2 style="color: var(--secondary-purple); font-size: 1.8rem;">אלופים! מקום ${myIndex + 1}!</h2><p style="font-size: 1.5rem;">עם ${myScore} נקודות.</p>`;
+      } else {
+        rankContainer.innerHTML = `<h2 style="color: var(--text-main); font-size: 1.5rem;">סיימת במקום ה-${myIndex + 1}</h2><p style="font-size: 1.2rem;">אספת ${myScore} נקודות במשחק.</p>`;
+      }
+
+      setTimeout(() => {
+        document.getElementById('final-drumroll').style.display = 'none';
+        document.getElementById('final-personal').style.display = 'block';
+        if (myIndex === 0) confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 }});
+      }, 8500);
+    }
+  </script>
+</body>
+</html>

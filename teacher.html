@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>פאנל ניהול - מורה 👑</title>
+  <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #2d3436; --card-bg: #fff; --text: #333; --primary: #6c5ce7; }
+    body { font-family: 'Assistant', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    
+    /* מסך התחברות */
+    .login-container { background: var(--card-bg); border-radius: 20px; padding: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); width: 100%; max-width: 400px; text-align: center; margin-top: 50px;}
+    
+    .dashboard-container { display: none; /* מוסתר בהתחלה עד להתחברות */ grid-template-columns: 1fr; gap: 20px; width: 100%; max-width: 1100px; }
+    @media(min-width: 800px) { .dashboard-container { grid-template-columns: 1fr 1fr; } .full-width { grid-column: 1 / -1; } }
+    
+    .card { background: var(--card-bg); border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); box-sizing: border-box;}
+    h1 { color: #fff; font-weight: 800; text-align: center; margin-bottom: 5px;}
+    h2 { color: var(--primary); margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 1.5rem;}
+    h3 { margin-top: 0; color: #2d3436; }
+    #auth-status { text-align: center; color: #fdcb6e; font-weight: bold; margin-bottom: 20px; font-size: 1rem; }
+    .status-ok { color: #00b894 !important; }
+    
+    input[type="text"], input[type="password"] { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #ddd; border-radius: 10px; font-size: 1.1rem; box-sizing: border-box; }
+    input:focus { outline: none; border-color: var(--primary); }
+    
+    button { color: white; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 700; cursor: pointer; width: 100%; transition: all 0.2s; margin-top: 5px; }
+    button:hover:not(:disabled) { transform: translateY(-2px); opacity: 0.9;}
+    button:disabled { background-color: #b2bec3; cursor: not-allowed; transform: none; }
+    
+    #btn-main-action { font-size: 1.3rem; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn-login { background-color: var(--primary); font-size: 1.3rem; padding: 15px; margin-top: 20px; }
+    .btn-danger { background-color: #d63031; }
+    .btn-add { background-color: var(--primary); width: auto; padding: 12px 20px; margin-top: 10px;}
+    .btn-export { background-color: #27ae60; width: auto; padding: 10px 30px; height: fit-content; }
+    
+    .queue-input-group { display: flex; gap: 10px; align-items: center; }
+    #category-queue-list { list-style: none; padding: 0; margin: 15px 0; max-height: 150px; overflow-y: auto; }
+    #category-queue-list li { background: #f1f2f6; padding: 10px; margin-bottom: 5px; border-radius: 5px; display: flex; justify-content: space-between; border-right: 4px solid var(--primary); }
+    .delete-cat { color: #d63031; cursor: pointer; font-weight: bold; }
+    
+    .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .data-table th, .data-table td { text-align: right; padding: 8px; border-bottom: 1px solid #eee; }
+    .data-table th { background-color: #f8f9fa; }
+    
+    .live-word-pill { background:#ffeaa7; padding:8px 15px; border-radius:20px; display:flex; align-items:center; gap:10px; border: 1px solid #fdcb6e;}
+    .btn-ban { background:transparent; color:#d63031; border:none; padding:0; margin:0; width:auto; font-size:1.2rem; cursor:pointer; }
+    .btn-kick { background:transparent; color:#d63031; border:none; padding:0; margin:0 0 0 10px; width:auto; font-size:1rem; cursor:pointer; vertical-align: middle; }
+    
+    .history-item { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #eee;}
+    .history-cat-title { font-weight: bold; color: var(--primary); margin-bottom: 10px; font-size: 1.1rem;}
+    .winning-words { display: flex; flex-wrap: wrap; gap: 8px; }
+    .word-badge { background: #00b894; color: white; padding: 4px 10px; border-radius: 15px; font-size: 0.9rem; }
+    
+    .link-container { display: flex; gap: 10px; }
+    .link-container input { direction: ltr; text-align: left; background: #f1f2f6; flex-grow: 1;}
+    .practice-toggle { background: #e8f8f5; padding: 10px; border-radius: 8px; border: 2px dashed #00b894; text-align: center; margin-bottom: 15px; cursor: pointer; font-weight: bold; color: #00b894; display: block;}
+    .practice-toggle input { width: auto; margin-left: 10px; transform: scale(1.5); }
+  </style>
+</head>
+<body>
+
+  <h1>👑 עמדת מנהל משחק</h1>
+  <div id="auth-status"></div>
+
+  <div id="login-section" class="login-container">
+    <h2>כניסת צוות 🔒</h2>
+    <p style="color: #636e72; margin-bottom: 20px;">אנא הזן פרטי גישה כדי לנהל את המשחק.</p>
+    <input type="text" id="admin-user" placeholder="שם משתמש..." autocomplete="off">
+    <input type="password" id="admin-pass" placeholder="סיסמה...">
+    <button id="btn-admin-login" class="btn-login">התחבר למערכת</button>
+  </div>
+
+  <div id="dashboard-section" class="dashboard-container">
+    
+    <div class="card full-width" style="border: 3px solid var(--primary);">
+      <h2>🎮 ניהול משחק ובנק שאלות</h2>
+      <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+        <div style="flex: 1; min-width: 300px;">
+          <h3>📥 הכן קטגוריות מראש</h3>
+          <div class="queue-input-group">
+            <input type="text" id="new-category-input" placeholder="הקלד קטגוריה חדשה...">
+            <button id="btn-add-category" class="btn-add">הוסף לתור</button>
+          </div>
+          <ul id="category-queue-list"></ul>
+        </div>
+        <div style="flex: 1; min-width: 300px; background: #f8f9fa; padding: 15px; border-radius: 10px; display:flex; flex-direction:column; justify-content:center;">
+          <h3 style="color: #d63031; text-align:center;">שליטה רציפה</h3>
+          <label class="practice-toggle" id="practice-label">
+            <input type="checkbox" id="chk-practice"> 🎯 הפעל כסיבוב ניסיון (ללא ניקוד)
+          </label>
+          <button id="btn-main-action" disabled>טוען...</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
+        <h2 style="border: none; padding: 0; margin: 0;">🏆 משתתפים (<span id="player-count-display">0</span>)</h2>
+        <button id="btn-export-csv" class="btn-export" disabled>📥 לאקסל</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>שם התלמיד</th><th>נקודות</th></tr></thead>
+        <tbody id="admin-leaderboard">
+          <tr><td colspan="2" style="text-align:center;">ממתין לנרשמים...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2 style="color: #e17055;">👀 צנזורה ושידור חי (סיבוב נוכחי)</h2>
+      <div id="admin-live-answers" style="min-height: 60px; margin-bottom: 20px;">
+        <p style="text-align:center; color:#636e72;">אין סיבוב פעיל כרגע.</p>
+      </div>
+      <hr style="border: 1px solid #eee; margin-bottom: 20px;">
+      <h2>📝 היסטוריית סיבובים קודמים</h2>
+      <div id="admin-history-container">
+        <p style="text-align:center; color:#636e72;">עוד לא שוחקו סיבובים...</p>
+      </div>
+    </div>
+
+    <div class="card full-width" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; background: #fff3cd; border: 2px solid #ffeeba;">
+      <div style="flex: 1; min-width: 300px;">
+        <button id="btn-end-game" style="background-color: #f1c40f; color: #2d3436; font-size: 1.5rem; padding: 15px;" disabled>🏆 סיים משחק והכרז מנצחים!</button>
+      </div>
+      <button id="btn-admin-reset" class="btn-danger" style="width: auto; padding: 15px 30px; height: fit-content;" disabled>⚠️ איפוס מלא (מחיקת הכל)</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getDatabase, ref, set, get, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAFw1v_X9xCR7Qsx0lLcw6aIdWa6vN8Uog",
+      authDomain: "herd-mentality-c0c0a.firebaseapp.com",
+      databaseURL: "https://herd-mentality-c0c0a-default-rtdb.firebaseio.com",
+      projectId: "herd-mentality-c0c0a",
+      storageBucket: "herd-mentality-c0c0a.firebasestorage.app",
+      messagingSenderId: "697436671170",
+      appId: "1:697436671170:web:1765156f5c51ca373c3f5b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const statusEl = document.getElementById('auth-status');
+    const loginSection = document.getElementById('login-section');
+    const dashboardSection = document.getElementById('dashboard-section');
+    
+    const btnMainAction = document.getElementById('btn-main-action');
+    const btnReset = document.getElementById('btn-admin-reset');
+    const btnExport = document.getElementById('btn-export-csv');
+    const btnEndGame = document.getElementById('btn-end-game');
+    const chkPractice = document.getElementById('chk-practice');
+    
+    let categoryQueue = [];
+    let currentGameState = null;
+    let liveRoundTracker = 0; 
+
+    // --- לוגיקת ההתחברות החדשה ---
+    
+    // תמיכה ב-Enter במסך ההתחברות
+    document.getElementById('admin-pass').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') document.getElementById('btn-admin-login').click();
+    });
+
+    document.getElementById('btn-admin-login').addEventListener('click', () => {
+      const userVal = document.getElementById('admin-user').value.trim();
+      const passVal = document.getElementById('admin-pass').value.trim();
+
+      if (userVal === 'admin' && passVal === 'admin') {
+        
+        statusEl.innerText = "🔄 מתחבר למסד הנתונים...";
+        document.getElementById('btn-admin-login').disabled = true;
+        document.getElementById('btn-admin-login').innerText = "אנא המתן...";
+
+        // מתחבר למשתמש הגנרי ב-Firebase
+        signInWithEmailAndPassword(auth, "admin@game.com", "123456")
+          .then(() => {
+            // התחברות הצליחה - מעלים את הלובי ומציגים את הדאשבורד
+            loginSection.style.display = 'none';
+            // שימוש ב-display flex/grid כדי לשמור על העיצוב
+            dashboardSection.style.display = window.innerWidth > 800 ? 'grid' : 'flex'; 
+            
+            statusEl.innerText = "🟢 מחובר ומאובטח";
+            statusEl.classList.add('status-ok');
+            btnReset.disabled = false;
+            btnExport.disabled = false;
+            btnEndGame.disabled = false;
+            
+            // אתחול משחק אם צריך
+            get(ref(db, 'gameState')).then(snap => {
+              if(!snap.exists()) set(ref(db, 'gameState'), { status: 'WAITING', category: '', round: 0, isPractice: false });
+            });
+            
+            // התחלת האזנה לנתונים
+            startDashboardListeners();
+          })
+          .catch((error) => {
+            statusEl.innerText = "";
+            document.getElementById('btn-admin-login').disabled = false;
+            document.getElementById('btn-admin-login').innerText = "התחבר למערכת";
+            alert("שגיאת שרת: ודא שיצרת משתמש admin@game.com עם סיסמה 123456 ב-Firebase Auth.");
+            console.error(error);
+          });
+      } else {
+        alert("שם משתמש או סיסמה שגויים.");
+      }
+    });
+
+    // כל ההאזנות של הדאשבורד הוכנסו לפונקציה שמופעלת רק אחרי התחברות מוצלחת
+    function startDashboardListeners() {
+      onValue(ref(db, 'gameState'), (snap) => {
+        const state = snap.val();
+        if(!state) return;
+        currentGameState = state;
+        updateMainButtonUI();
+
+        if (state.status === 'ANSWERING' && state.round !== liveRoundTracker) {
+          liveRoundTracker = state.round;
+          onValue(ref(db, `answers/round_${state.round}`), (ansSnap) => {
+            if(currentGameState.status === 'ANSWERING') renderLiveAnswers(ansSnap.val() || {});
+          });
+        } else if (state.status !== 'ANSWERING') {
+          document.getElementById('admin-live-answers').innerHTML = '<p style="text-align:center; color:#636e72;">אין סיבוב פעיל כרגע.</p>';
+        }
+      });
+
+      onValue(ref(db, 'players'), (snapshot) => {
+        const players = snapshot.val() || {};
+        let leaderArr = Object.keys(players).map(p => ({ name: p, score: players[p].score || 0 }));
+        leaderArr.sort((a,b) => b.score - a.score);
+        document.getElementById('player-count-display').innerText = leaderArr.length;
+        const tbody = document.getElementById('admin-leaderboard');
+        tbody.innerHTML = '';
+        if(leaderArr.length === 0) { tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">ממתין לנרשמים...</td></tr>'; } 
+        else {
+          leaderArr.forEach(p => {
+            tbody.innerHTML += `<tr><td style="text-align:right;"><button class="btn-kick" data-player="${p.name}">❌</button> ${p.name}</td><td>${p.score}</td></tr>`;
+          });
+        }
+        document.querySelectorAll('.btn-kick').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const playerToKick = e.currentTarget.getAttribute('data-player');
+            if(confirm(`להסיר את "${playerToKick}"?`)) {
+              await remove(ref(db, `players/${playerToKick}`));
+              if (currentGameState && currentGameState.status === 'ANSWERING') await remove(ref(db, `answers/round_${currentGameState.round}/${playerToKick}`));
+            }
+          });
+        });
+      });
+
+      onValue(ref(db, 'history'), (snapshot) => {
+        const historyData = snapshot.val() || {};
+        const container = document.getElementById('admin-history-container');
+        container.innerHTML = '';
+        const rounds = Object.keys(historyData);
+        if(rounds.length === 0) { container.innerHTML = '<p style="text-align:center; color:#636e72;">עוד לא שוחקו סיבובים...</p>'; return; }
+        rounds.reverse().forEach(roundKey => {
+          const round = historyData[roundKey];
+          let wordsHtml = (round.winners && round.winners.length > 0) ? round.winners.map(w => `<span class="word-badge">${w.word} (${w.pts} נק')</span>`).join('') : '<span style="color:#b2bec3;">אין נתונים</span>';
+          let isPracHTML = round.isPractice ? '<span style="color:#d63031; font-size:0.9rem;"> [ללא ניקוד]</span>' : '';
+          container.innerHTML += `<div class="history-item"><div class="history-cat-title">${round.category}${isPracHTML}</div><div class="winning-words">${wordsHtml}</div></div>`;
+        });
+      });
+    }
+
+    function updateMainButtonUI() {
+        if (!currentGameState) return;
+        btnMainAction.style.color = 'white'; 
+        btnMainAction.disabled = false;
+        document.getElementById('practice-label').style.display = (currentGameState.status === 'WAITING' || currentGameState.status === 'RESULTS') ? 'block' : 'none';
+
+        if (currentGameState.status === 'WAITING' || currentGameState.status === 'RESULTS') {
+             if (categoryQueue.length > 0) {
+                 btnMainAction.innerText = currentGameState.round === 0 ? "▶️ התחל משחק (שלח שאלה)" : "▶️ שלח את השאלה הבאה";
+                 btnMainAction.style.backgroundColor = '#00b894';
+             } else {
+                 btnMainAction.innerText = "📥 הוסף קטגוריות לתור כדי להתחיל";
+                 btnMainAction.style.backgroundColor = '#b2bec3';
+                 btnMainAction.disabled = true;
+             }
+        } else if (currentGameState.status === 'ANSWERING') {
+             btnMainAction.innerText = "🛑 סגור סיבוב (חשב תוצאות)";
+             btnMainAction.style.backgroundColor = '#0984e3';
+        } else if (currentGameState.status === 'FINAL_RESULTS') {
+             btnMainAction.innerText = "המשחק הסתיים";
+             btnMainAction.style.backgroundColor = '#b2bec3';
+             btnMainAction.disabled = true;
+             chkPractice.checked = false;
+        }
+    }
+
+    btnMainAction.addEventListener('click', async () => {
+      if (!currentGameState) return;
+
+      if (currentGameState.status === 'WAITING' || currentGameState.status === 'RESULTS') {
+        if (categoryQueue.length === 0) return alert("התור ריק!");
+        const cat = categoryQueue.shift(); 
+        const isPracticeRound = chkPractice.checked;
+        renderQueue();
+
+        const snap = await get(ref(db, 'gameState/round'));
+        const newRound = (snap.val() || 0) + 1;
+
+        await set(ref(db, 'gameState'), { status: 'ANSWERING', category: cat, round: newRound, isPractice: isPracticeRound });
+        chkPractice.checked = false; 
+      } 
+      else if (currentGameState.status === 'ANSWERING') {
+        const answersSnap = await get(ref(db, `answers/round_${currentGameState.round}`));
+        const answers = answersSnap.val() || {};
+        let counts = {};
+        Object.values(answers).forEach(ans => counts[ans] = (counts[ans] || 0) + 1);
+
+        const playersSnap = await get(ref(db, 'players'));
+        let players = playersSnap.val() || {};
+        let winningWordsArr = [];
+        
+        for (let [word, count] of Object.entries(counts)) {
+           if (count > 0) winningWordsArr.push({ word: word, pts: count });
+        }
+        winningWordsArr.sort((a,b) => b.pts - a.pts);
+
+        if (!currentGameState.isPractice) {
+            for (let [playerName, answer] of Object.entries(answers)) {
+              let ptsGained = counts[answer];
+              let currentScore = players[playerName]?.score || 0;
+              await set(ref(db, `players/${playerName}/score`), currentScore + ptsGained);
+            }
+        }
+
+        await set(ref(db, `history/round_${currentGameState.round}`), {
+          category: currentGameState.category + (currentGameState.isPractice ? " (סיבוב ניסיון)" : ""),
+          winners: winningWordsArr,
+          isPractice: currentGameState.isPractice || false
+        });
+
+        await update(ref(db, 'gameState'), { status: 'RESULTS' });
+      }
+    });
+
+    btnEndGame.addEventListener('click', async () => {
+      if(confirm("האם אתה בטוח שברצונך לסיים את המשחק ולהציג את המסך המסכם לכולם?")) {
+         await update(ref(db, 'gameState'), { status: 'FINAL_RESULTS' });
+      }
+    });
+
+    function renderLiveAnswers(answersObj) {
+      let counts = {};
+      for(let ans of Object.values(answersObj)) { counts[ans] = (counts[ans] || 0) + 1; }
+      let arr = Object.keys(counts).map(w => ({ word: w, count: counts[w] }));
+      arr.sort((a,b) => b.count - a.count);
+      const container = document.getElementById('admin-live-answers');
+      if(arr.length === 0) { container.innerHTML = '<p style="text-align:center; color:#636e72;">ממתין לתשובות...</p>'; return; }
+      let html = '<div style="display:flex; flex-wrap:wrap; gap:10px;">';
+      arr.forEach(item => {
+        html += `<div class="live-word-pill"><span style="font-weight:bold;">${item.word} (${item.count})</span><button class="btn-ban" data-word="${item.word}" title="פסול מילה זו">🗑️</button></div>`;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+      document.querySelectorAll('.btn-ban').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const wordToBan = e.currentTarget.getAttribute('data-word');
+          if(confirm(`האם לפסול את "${wordToBan}"?`)) {
+            for(let [player, ans] of Object.entries(answersObj)) {
+              if(ans === wordToBan) await remove(ref(db, `answers/round_${currentGameState.round}/${player}`));
+            }
+          }
+        });
+      });
+    }
+
+    const inputNewCat = document.getElementById('new-category-input');
+    const btnAddCat = document.getElementById('btn-add-category');
+    const queueList = document.getElementById('category-queue-list');
+    function renderQueue() {
+      queueList.innerHTML = '';
+      categoryQueue.forEach((cat, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${index + 1}. ${cat}</span> <span class="delete-cat" data-index="${index}">X</span>`;
+        queueList.appendChild(li);
+      });
+      document.querySelectorAll('.delete-cat').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          categoryQueue.splice(e.target.getAttribute('data-index'), 1);
+          renderQueue(); updateMainButtonUI();
+        });
+      });
+      updateMainButtonUI();
+    }
+    btnAddCat.addEventListener('click', () => { const val = inputNewCat.value.trim(); if (val) { categoryQueue.push(val); inputNewCat.value = ''; renderQueue(); } });
+    inputNewCat.addEventListener('keypress', (e) => { if (e.key === 'Enter') btnAddCat.click(); });
+
+    btnExport.addEventListener('click', async () => {
+      const snap = await get(ref(db, 'players'));
+      const players = snap.val() || {};
+      let leaderArr = Object.keys(players).map(p => ({ name: p, score: players[p].score || 0 }));
+      if (leaderArr.length === 0) return alert("אין נתונים לייצוא.");
+      leaderArr.sort((a,b) => b.score - a.score);
+      
+      let csvContent = "\uFEFFשם התלמיד,נקודות\n";
+      leaderArr.forEach(p => { csvContent += `${p.name},${p.score}\n`; });
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "תוצאות_מחשבת_העדר.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    btnReset.addEventListener('click', () => {
+      if(confirm("למחוק הכל? הניקוד וההיסטוריה יאפסו לגמרי.")) {
+        set(ref(db, 'gameState'), { status: 'WAITING', category: '', round: 0, isPractice: false });
+        remove(ref(db, 'answers')); remove(ref(db, 'players')); remove(ref(db, 'history')).then(() => alert("המשחק אופס בהצלחה."));
+      }
+    });
+  </script>
+</body>
+</html>
